@@ -15,4 +15,5 @@ pip install requests
 ## Install django apps
 
 python manage.py makemigrations
+
 python manage.py migrate
