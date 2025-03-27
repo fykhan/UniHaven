@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### Virtual Environment
 
 python -m venv env
@@ -9,3 +10,24 @@ source env/bin/activate
 pip install django==5.0
 pip install djangorestframework
 pip install requests
+=======
+## Virtual Environment
+
+python -m venv env
+
+source env/bin/activate
+
+## Dependencies
+
+pip install django==5.0
+
+pip install djangorestframework
+
+pip install requests
+
+## Install django apps
+
+python manage.py makemigrations
+
+python manage.py migrate
+>>>>>>> e9c97de01232d6c5f48caee4cc4d67178319f027
