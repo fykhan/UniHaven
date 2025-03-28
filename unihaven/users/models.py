@@ -1,8 +1,8 @@
 from django.db import models
 from djang0.contrib.auth.models import AbstractUser, Group, Permission
 
-# Create your models here.
-class Uder(AbstractUser):
+# Create User class
+class User(AbstractUser):
   class Role(models.TextChoices):
     STUDENT = 'ST', 'Student'
     STAFF = 'SF', 'Staff'
@@ -23,3 +23,11 @@ class Uder(AbstractUser):
 
   def is_admin(self):
       return self.role == self.Role.ADMIN
+
+# Add custom permissions
+class Meta:
+    permissions = [
+        ("manage_accommodations", "Can create, update, and delete accommodations"),
+        ("manage_reservations", "Can manage all reservations"),
+        ("view_all_reservations", "Can view all reservations"),
+    ]
