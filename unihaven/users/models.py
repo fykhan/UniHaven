@@ -1,5 +1,6 @@
 from django.db import models
-from djang0.contrib.auth.models import AbstractUser, Group, Permission
+from djang0.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create User class
 class User(AbstractUser):
