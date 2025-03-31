@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render, redirect
 import json
 from .models import User
 
@@ -21,7 +22,8 @@ def login_view(request):
             })
         else:
             return JsonResponse({'message': 'Invalid credentials'}, status=400)
-
+    elif request.method == 'GET':
+        return render(request, 'login.html')
 @csrf_exempt
 def logout_view(request):
     if request.method == 'POST':
