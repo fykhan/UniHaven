@@ -1,92 +1,123 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Accommodation, Reservation, Rating
-from .serializers import AccommodationSerializer, ReservationSerializer, RatingSerializer
-from django.shortcuts import get_object_or_404
-from django.db.models import Q
+import requests
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
 
-class AccommodationList(APIView):
-    """
-    GET: Search and return a list of accommodation based on the query parameters.
-    """
-    def get(self, request):
-        # Example Parameters：?type=APARTMENT&min_price=5000&max_price=10000
-        acc_type = request.query_params.get('type', None)
-        min_price = request.query_params.get('min_price', None)
-        max_price = request.query_params.get('max_price', None)
-        # You can continue to add other filtering conditions, such as number of beds, distance, etc.
-        
-        accommodations = Accommodation.objects.all()
-        if acc_type:
-            accommodations = accommodations.filter(accommodation_type=acc_type)
-        if min_price:
-            accommodations = accommodations.filter(price__gte=min_price)
-        if max_price:
-            accommodations = accommodations.filter(price__lte=max_price)
-            
-        serializer = AccommodationSerializer(accommodations, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+PROPERTY_TYPES = [
+    ('AP', 'Apartment'),
+    ('HM', 'House - Entire'),
+    ('HR', 'House - Room'),
+    ('SH', 'Shared Room'),
+]
 
-class CreateReservation(APIView):
-    """
-    POST: Create a reservation for a specific property.
-    """
-    def post(self, request):
-        serializer = ReservationSerializer(data=request.data)
-        if serializer.is_valid():
-            accommodation_id = serializer.validated_data['accommodation'].id
-            # Check if the same accommodation has already been booked
-            existing = Reservation.objects.filter(accommodation_id=accommodation_id, status='RESERVED')
-            if existing.exists():
-                return Response({'error': 'Accommodation is already reserved.'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class CancelReservation(APIView):
+@login_required
+def accommodation_list_view(request):
     """
-    POST: Cancel an existing reservation.
+    Renders the list of accommodations by fetching from the API.
     """
-    def post(self, request, reservation_id):
-        reservation = get_object_or_404(Reservation, id=reservation_id)
-        if reservation.status != 'RESERVED':
-            return Response({'error': 'Reservation cannot be cancelled.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        reservation.status = 'CANCELLED'
-        reservation.save()
-        serializer = ReservationSerializer(reservation)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    print("User", request.user)
+    api_url = request.build_absolute_uri('/api/accommodations/')
+    try:
+        response = requests.get(api_url, cookies=request.COOKIES)
+        accommodations = response.json() if response.status_code == 200 else []
+    except Exception as e:
+        messages.error(request, f"Error loading data: {e}")
+        accommodations = []
+    # Map property_type abbreviations to full names
+    property_type_map = dict(PROPERTY_TYPES)
+    for accommodation in accommodations:
+        accommodation['property_type'] = property_type_map.get(accommodation['property_type'], accommodation['property_type'])
+        accommodation['created_at'] = datetime.strptime(accommodation['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
+    return render(request, 'list.html', {'accommodations': accommodations})
 
-class CreateAccommodation(APIView):
-    """
-    POST: New accommodation information is added by CEDARS accommodation specialists.
-    """
-    def post(self, request):
-        serializer = AccommodationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RateAccommodation(APIView):
+@login_required
+def create_accommodation_view(request):
     """
-    POST: Users rate accommodation.
+    Handles form submission to create new accommodation via the API.
     """
-    def post(self, request):
-        serializer = RatingSerializer(data=request.data)
-        if serializer.is_valid():
-            # Check if the user has rated this accommodation
-            user = serializer.validated_data['user']
-            accommodation = serializer.validated_data['accommodation']
-            if Rating.objects.filter(user=user, accommodation=accommodation).exists():
-                return Response({'error': 'You have already rated this accommodation.'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            rating = serializer.save()
-            # Update accommodation's overall rating and count
-            accommodation.total_rating += rating.score
-            accommodation.rating_count += 1
-            accommodation.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if request.method == 'POST':
+        data = {
+            'title': request.POST.get('title'),
+            'description': request.POST.get('description'),
+            'property_type': request.POST.get('property_type'),
+            'price': request.POST.get('price'),
+            'beds': request.POST.get('beds'),
+            'bedrooms': request.POST.get('bedrooms'),
+            'address': request.POST.get('address'),
+            'latitude': request.POST.get('latitude'),
+            'longitude': request.POST.get('longitude'),
+            'available_from': request.POST.get('available_from'),
+            'available_to': request.POST.get('available_to'),
+            'owner': request.user.id,
+            'created_by': request.user.id
+        }
+
+        res = requests.post(request.build_absolute_uri('/api/accommodations/'), json=data)
+        if res.status_code == 201:
+            messages.success(request, "Accommodation created successfully.")
+            return redirect('accommodation_list')
+        else:
+            messages.error(request, "Failed to create accommodation.")
+    return render(request, 'create.html')
+
+
+@login_required
+def create_reservation_view(request):
+    """
+    Submits a reservation request via the API.
+    """
+    if request.method == 'POST':
+        data = {
+            'accommodation': request.POST.get('accommodation'),
+            'student': request.user.id,
+            'start_date': request.POST.get('start_date'),
+            'end_date': request.POST.get('end_date'),
+            'status': 'RESERVED'
+        }
+        res = requests.post(request.build_absolute_uri('/api/reservations/'), json=data)
+        if res.status_code == 201:
+            messages.success(request, "Reservation successful.")
+            return redirect('accommodation_list')
+        else:
+            messages.error(request, "Reservation failed.")
+    return render(request, 'reserve.html')
+
+
+@login_required
+def cancel_reservation_view(request, reservation_id):
+    """
+    Cancels an existing reservation via the API.
+    """
+    url = request.build_absolute_uri(f'/api/cancel/{reservation_id}/')
+    res = requests.post(url)
+    if res.status_code == 200:
+        messages.success(request, "Reservation cancelled.")
+    else:
+        messages.error(request, "Cancellation failed.")
+    return redirect('accommodation_list')
+
+
+@login_required
+def rate_accommodation_view(request):
+    """
+    Submits a rating via the API.
+    """
+    if request.method == 'POST':
+        data = {
+            'accommodation': request.POST.get('accommodation'),
+            'user': request.user.id,
+            'score': request.POST.get('score'),
+            'comment': request.POST.get('comment')
+        }
+
+        res = requests.post(request.build_absolute_uri('/api/rate/'), json=data)
+        if res.status_code == 201:
+            messages.success(request, "Thank you for your rating!")
+            return redirect('accommodation_list')
+        else:
+            messages.error(request, "Rating failed. Have you already rated this accommodation?")
+    return render(request, 'rate.html')
