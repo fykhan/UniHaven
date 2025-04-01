@@ -1,9 +1,11 @@
 import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
+from .forms import AccommodationForm, ReservationForm, RatingForm
+from .models import Accommodation, Reservation, Rating
 
 PROPERTY_TYPES = [
     ('AP', 'Apartment'),
@@ -27,97 +29,96 @@ def accommodation_list_view(request):
         messages.error(request, f"Error loading data: {e}")
         accommodations = []
     # Map property_type abbreviations to full names
+    
     property_type_map = dict(PROPERTY_TYPES)
-    for accommodation in accommodations:
-        accommodation['property_type'] = property_type_map.get(accommodation['property_type'], accommodation['property_type'])
-        accommodation['created_at'] = datetime.strptime(accommodation['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
-    return render(request, 'list.html', {'accommodations': accommodations})
+    user_reservations = Reservation.objects.filter(student=request.user, status='RESERVED')
+    reserved_ids = set(r.accommodation_id for r in user_reservations)
 
+    # Step 2: Add .can_rate and .is_created_by_user to each accommodation
+    for acc in accommodations:
+        acc['property_type'] = property_type_map.get(acc['property_type'], acc['property_type'])
+        acc['created_at'] = datetime.strptime(acc['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
+        acc['can_rate'] = acc['id'] in reserved_ids and acc['is_available'] is True
+    return render(request, 'list.html', {'accommodations': accommodations})
 
 @login_required
 def create_accommodation_view(request):
-    """
-    Handles form submission to create new accommodation via the API.
-    """
     if request.method == 'POST':
-        data = {
-            'title': request.POST.get('title'),
-            'description': request.POST.get('description'),
-            'property_type': request.POST.get('property_type'),
-            'price': request.POST.get('price'),
-            'beds': request.POST.get('beds'),
-            'bedrooms': request.POST.get('bedrooms'),
-            'address': request.POST.get('address'),
-            'latitude': request.POST.get('latitude'),
-            'longitude': request.POST.get('longitude'),
-            'available_from': request.POST.get('available_from'),
-            'available_to': request.POST.get('available_to'),
-            'owner': request.user.id,
-            'created_by': request.user.id
-        }
-
-        res = requests.post(request.build_absolute_uri('/api/accommodations/'), json=data)
-        if res.status_code == 201:
-            messages.success(request, "Accommodation created successfully.")
+        form = AccommodationForm(request.POST)
+        if form.is_valid():
+            acc = form.save(commit=False)
+            acc.owner = request.user
+            acc.created_by = request.user
+            acc.save()
+            messages.success(request, "Accommodation created.")
             return redirect('accommodation_list')
-        else:
-            messages.error(request, "Failed to create accommodation.")
-    return render(request, 'create.html')
+    else:
+        form = AccommodationForm()
+    return render(request, 'create.html', {'form': form})
 
 
 @login_required
 def create_reservation_view(request):
-    """
-    Submits a reservation request via the API.
-    """
     if request.method == 'POST':
-        data = {
-            'accommodation': request.POST.get('accommodation'),
-            'student': request.user.id,
-            'start_date': request.POST.get('start_date'),
-            'end_date': request.POST.get('end_date'),
-            'status': 'RESERVED'
-        }
-        res = requests.post(request.build_absolute_uri('/api/reservations/'), json=data)
-        if res.status_code == 201:
-            messages.success(request, "Reservation successful.")
+        form = ReservationForm(request.POST)
+        if form.is_valid():
+            reservation = form.save(commit=False)
+            reservation.student = request.user
+            reservation.status = 'RESERVED'
+            reservation.save()
+            messages.success(request, "Reservation submitted.")
             return redirect('accommodation_list')
-        else:
-            messages.error(request, "Reservation failed.")
-    return render(request, 'reserve.html')
+    else:
+        form = ReservationForm()
+    
+    # Show the selected accommodation if already chosen
+    accommodation_id = request.GET.get('accommodation')
+    accommodation = None
+    if accommodation_id:
+        accommodation = Accommodation.objects.filter(id=accommodation_id).first()
+
+    return render(request, 'reserve.html', {
+        'form': form,
+        'accommodation': accommodation
+    })
+
+@login_required
+def rate_accommodation_view(request):
+    if request.method == 'POST':
+        form = RatingForm(request.POST)
+        if form.is_valid():
+            rating = form.save(commit=False)
+            rating.student = request.user
+            if Rating.objects.filter(student=request.user, accommodation=rating.accommodation).exists():
+                messages.error(request, "You've already rated this accommodation.")
+            else:
+                rating.save()
+                messages.success(request, "Thank you for your feedback!")
+                return redirect('accommodation_list')
+    else:
+        form = RatingForm()
+    return render(request, 'rate.html', {'form': form})
 
 
 @login_required
 def cancel_reservation_view(request, reservation_id):
-    """
-    Cancels an existing reservation via the API.
-    """
-    url = request.build_absolute_uri(f'/api/cancel/{reservation_id}/')
-    res = requests.post(url)
-    if res.status_code == 200:
-        messages.success(request, "Reservation cancelled.")
-    else:
-        messages.error(request, "Cancellation failed.")
-    return redirect('accommodation_list')
+    reservation = get_object_or_404(Reservation, id=reservation_id, student=request.user)
+    accommodation = reservation.accommodation
 
-
-@login_required
-def rate_accommodation_view(request):
-    """
-    Submits a rating via the API.
-    """
     if request.method == 'POST':
-        data = {
-            'accommodation': request.POST.get('accommodation'),
-            'user': request.user.id,
-            'score': request.POST.get('score'),
-            'comment': request.POST.get('comment')
-        }
-
-        res = requests.post(request.build_absolute_uri('/api/rate/'), json=data)
-        if res.status_code == 201:
-            messages.success(request, "Thank you for your rating!")
+        form = CancelReservationForm(request.POST, instance=reservation)
+        if form.is_valid() and reservation.status == 'RESERVED':
+            reservation.status = 'cancelled'
+            reservation.save()
+            messages.success(request, "Reservation cancelled.")
             return redirect('accommodation_list')
         else:
-            messages.error(request, "Rating failed. Have you already rated this accommodation?")
-    return render(request, 'rate.html')
+            messages.error(request, "Cannot cancel this reservation.")
+    else:
+        form = CancelReservationForm(instance=reservation)
+
+    return render(request, 'cancel.html', {
+        'form': form,
+        'accommodation': accommodation,
+        'reservation': reservation
+    })

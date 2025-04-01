@@ -28,6 +28,9 @@ class Accommodation(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_accommodations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    reserved = models.BooleanField(default=False)
+    reserved_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='reserved_accommodations')
 
     def __str__(self):
         return f"{self.title} - {self.get_property_type_display()}"

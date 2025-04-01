@@ -15,7 +15,6 @@
   </nav>
 
   <br>
-
   <table border="1">
     <tr>
       <th>Title</th>
@@ -27,10 +26,12 @@
       <th>Available From</th>
       <th>Available To</th>
       <th>Created At</th>
+      <th>Actions</th>
     </tr>
     {% for acc in accommodations %}
     <tr>
       <td>{{ acc.title }}</td>
+      <td>{{ acc.description }}</td>
       <td>{{ acc.property_type }}</td>
       <td>${{ acc.price }}</td>
       <td>{{ acc.beds }}</td>
@@ -39,6 +40,14 @@
       <td>{{ acc.available_from }}</td>
       <td>{{ acc.available_to }}</td>
       <td>{{ acc.created_at }}</td>
+      <td>
+        <a href="{% url 'create_reservation' %}?accommodation={{ acc.id }}">Reserve</a>
+      
+        {% if acc.can_rate %}
+          | <a href="{% url 'rate_accommodation' %}?accommodation={{ acc.id }}">Rate</a>
+        {% endif %}
+
+      </td>
     </tr>
     {% endfor %}
   </table>

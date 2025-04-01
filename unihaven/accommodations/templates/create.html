@@ -3,16 +3,13 @@
 <head><title>Add Accommodation</title></head>
 <body>
   <h1>Create Accommodation</h1>
-
-  <nav>
-    <a href="{% url 'accommodation_list' %}">Back to List</a> |
-    <a href="{% url 'logout' %}">Logout</a>
-  </nav>
-
+  <nav><a href="{% url 'accommodation_list' %}">Back</a> | <a href="{% url 'logout' %}">Logout</a></nav>
+  
   <form method="POST">
     {% csrf_token %}
-    <!-- form fields... (already good) -->
-    <button type="submit">Create</button>
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
   </form>
+  
 </body>
 </html>
