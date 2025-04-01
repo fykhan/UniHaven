@@ -23,7 +23,8 @@ def login_view(request):
             #     'is_cedars_staff': user.is_cedars_staff
             # })
             if user.is_student:
-                return redirect('student_selection') 
+                return JsonResponse({'redirect_url': 'http://127.0.0.1:8000/api/reservations/'})
+               # return redirect('student_selection') 
             elif user.is_property_owner:
                 return JsonResponse({'redirect_url': 'http://127.0.0.1:8000/api/accommodations/'})
             elif user.is_cedars_staff or user.is_admin:
