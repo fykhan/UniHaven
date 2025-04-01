@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'style.css' %}">
   <title>Accommodation List</title>
 </head>
 <body>
 
-  <h1>Available Accommodations</h1>
-
-  <nav>
-    <a href="{% url 'add_accommodation' %}">Add Accommodation</a> |
-    <a href="{% url 'create_reservation' %}">Reserve</a> |
-    <a href="{% url 'rate_accommodation' %}">Rate</a> |
-    <a href="{% url 'logout' %}">Logout</a>
-  </nav>
+  <header>
+    <h1>Available Accommodations</h1>
+    <nav>
+      <a href="{% url 'add_accommodation' %}">Add Accommodation</a>
+      <a href="{% url 'create_reservation' %}">Reserve</a>
+      <a href="{% url 'rate_accommodation' %}">Rate</a>
+      <a href="{% url 'logout' %}">Logout</a>
+    </nav>
+  </header>
 
   <br>
   <table border="1">

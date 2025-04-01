@@ -1,16 +1,31 @@
-<h1>Cancel Reservation</h1>
-<nav><a href="{% url 'accommodation_list' %}">Back</a> | <a href="{% url 'logout' %}">Logout</a></nav>
+<!DOCTYPE html>
+<html>
+<head>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'style.css' %}">
 
-<h3>You're cancelling a reservation for:</h3>
-<ul>
-  <li><strong>{{ accommodation.title }}</strong></li>
-  <li>Type: {{ accommodation.property_type }}</li>
-  <li>Price: ${{ accommodation.price }}</li>
-  <li>Address: {{ accommodation.address }}</li>
-</ul>
+  <title>Reserve Accommodation</title>
+</head>
 
-<form method="POST">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Confirm Cancellation</button>
-</form>
+<body>
+  <header>
+    <h1>Cancel Reservation</h1>
+    <nav><a href="{% url 'accommodation_list' %}">Back</a> | <a href="{% url 'logout' %}">Logout</a></nav>
+  </header>
+
+  <h3>You're cancelling a reservation for:</h3>
+  <ul>
+    <li><strong>{{ accommodation.title }}</strong></li>
+    <li>Type: {{ accommodation.property_type }}</li>
+    <li>Price: ${{ accommodation.price }}</li>
+    <li>Address: {{ accommodation.address }}</li>
+  </ul>
+
+  <form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Confirm Cancellation</button>
+  </form>
+  
+</body>
+</html>

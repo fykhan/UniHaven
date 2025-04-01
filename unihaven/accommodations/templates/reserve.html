@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html>
-<head><title>Reserve Accommodation</title></head>
+<head>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+
+  <title>Reserve Accommodation</title>
+</head>
 <body>
-  <h1>Reserve Accommodation</h1>
-  <nav><a href="{% url 'accommodation_list' %}">Back</a> | <a href="{% url 'logout' %}">Logout</a></nav>
+  <header>
+    <h1>Reserve Accommodation</h1>
+    <nav><a href="{% url 'accommodation_list' %}">Back</a> | <a href="{% url 'logout' %}">Logout</a></nav>
+  </header>
   {% if accommodation %}
   <h3>Selected Accommodation:</h3>
   <ul>
