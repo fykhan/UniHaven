@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
+from datetime import date, datetime
+
 
 # Create your models here.
 class Accommodation(models.Model):
@@ -37,8 +39,8 @@ class Accommodation(models.Model):
 
 
 class Reservation(models.Model):
-    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='reservations')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reservations')
+    student = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    accommodation = models.ForeignKey('Accommodation', on_delete=models.CASCADE)
     start_date = models.DateField()
     end_date = models.DateField()
     status = models.CharField(max_length=20, default='pending', choices=[
@@ -47,7 +49,20 @@ class Reservation(models.Model):
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
     ])
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    def update_status(self):
+        today = date.today()
+        if self.status in ['cancelled', 'completed']:
+            return  # Do not update if already cancelled or completed
+
+        if self.end_date < today:
+            self.status = 'completed'
+        elif self.start_date <= today <= self.end_date:
+            self.status = 'confirmed'
+        else:
+            self.status = 'pending'
+        self.save()
+    created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

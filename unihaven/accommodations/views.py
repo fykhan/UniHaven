@@ -62,6 +62,8 @@ def rate_accommodation_view(request):
             rating.save()
             messages.success(request, "Thanks for your feedback!")
             return redirect('student_accommodations')
+        else:
+            messages.error(request, "Invalid rating. Please ensure the value is between 1 and 5.")
     else:
         form = RatingForm()
     return render(request, 'rate.html', {'form': form, 'is_cedars': request.user.is_cedars_staff})
@@ -103,6 +105,7 @@ def my_reservations_view(request):
     today = date.today()
 
     for res in reservations:
+        res.update_status()
         res.can_rate = (
             res.status == "completed" or
             (res.status == "confirmed" and res.end_date < today)
