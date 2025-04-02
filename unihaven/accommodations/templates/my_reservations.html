@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Reservations</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <h1>My Reservations</h1>
+
+  <nav>
+    <a href="{% url 'student_accommodations' %}">Back to Listings</a>
+    {% if is_cedars %}
+      | <a href="{% url 'cedars_dashboard' %}">Dashboard</a>
+    {% endif %}
+    | <a href="{% url 'logout' %}">Logout</a>
+  </nav>
+
+  {% if reservations %}
+    <table>
+      <tr>
+        <th>Accommodation</th>
+        <th>Period</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+      {% for res in reservations %}
+      <tr>
+        <td>{{ res }}</td>
+        <td>{{ res.start_date }} to {{ res.end_date }}</td>
+        <td>{{ res.status }}</td>
+        <td>
+            {% if res.status == "pending" or res.status == "confirmed" %}
+              <a href="{% url 'cancel_reservation' res.id %}">Cancel</a>
+            {% elif res.can_rate %}
+              <a href="{% url 'rate_accommodation' %}?accommodation={{ res.accommodation.id }}">Rate</a>
+            {% else %}
+              N/A
+            {% endif %}
+          </td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p>You have no reservations.</p>
+  {% endif %}
+</body>
+</html>
