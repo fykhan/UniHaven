@@ -28,8 +28,8 @@ def login_view(request):
             else:
                 return redirect('home')
         else:
-            # Send error message to template
-            return render(request, 'login.html', {'error': 'Invalid credentials'})
+            messages.error(request, 'Invalid credentials')
+            return render(request, 'login.html')
     
     return render(request, 'login.html')
 
