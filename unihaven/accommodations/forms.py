@@ -23,11 +23,24 @@ class ReservationForm(forms.ModelForm):
             'end_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hide accommodation field in UI since it's passed via URL/view
+        self.fields['accommodation'].widget = forms.HiddenInput()
+
 
 class RatingForm(forms.ModelForm):
     class Meta:
         model = Rating
         fields = ['accommodation', 'value', 'comment']
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['accommodation'].widget = forms.HiddenInput()
+
 
 class CancelReservationForm(forms.ModelForm):
     class Meta:

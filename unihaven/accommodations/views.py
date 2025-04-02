@@ -1,86 +1,56 @@
-import requests
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime
-from .forms import AccommodationForm, ReservationForm, RatingForm
+from django.http import HttpResponseForbidden
 from .models import Accommodation, Reservation, Rating
+from .forms import AccommodationForm, ReservationForm, RatingForm
+from datetime import date
 
-PROPERTY_TYPES = [
-    ('AP', 'Apartment'),
-    ('HM', 'House - Entire'),
-    ('HR', 'House - Room'),
-    ('SH', 'Shared Room'),
-]
+def is_cedars(user):
+    return user.is_cedars_staff or user.is_superuser
+
+@login_required
+def student_accommodation_list(request):
+    accommodations = Accommodation.objects.filter(is_available=True, available_to__gte=date.today())
+    return render(request, 'list.html', {'accommodations': accommodations, 'is_cedars': request.user.is_cedars_staff})
 
 
 @login_required
-def accommodation_list_view(request):
-    """
-    Renders the list of accommodations by fetching from the API.
-    """
-    print("User", request.user)
-    api_url = request.build_absolute_uri('/api/accommodations/')
-    try:
-        response = requests.get(api_url, cookies=request.COOKIES)
-        accommodations = response.json() if response.status_code == 200 else []
-    except Exception as e:
-        messages.error(request, f"Error loading data: {e}")
-        accommodations = []
-    # Map property_type abbreviations to full names
-    
-    property_type_map = dict(PROPERTY_TYPES)
-    user_reservations = Reservation.objects.filter(student=request.user, status='RESERVED')
-    reserved_ids = set(r.accommodation_id for r in user_reservations)
-
-    # Step 2: Add .can_rate and .is_created_by_user to each accommodation
-    for acc in accommodations:
-        acc['property_type'] = property_type_map.get(acc['property_type'], acc['property_type'])
-        acc['created_at'] = datetime.strptime(acc['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
-        acc['can_rate'] = acc['id'] in reserved_ids and acc['is_available'] is True
-    return render(request, 'list.html', {'accommodations': accommodations})
-
-@login_required
-def create_accommodation_view(request):
-    if request.method == 'POST':
-        form = AccommodationForm(request.POST)
-        if form.is_valid():
-            acc = form.save(commit=False)
-            acc.owner = request.user
-            acc.created_by = request.user
-            acc.save()
-            messages.success(request, "Accommodation created.")
-            return redirect('accommodation_list')
-    else:
-        form = AccommodationForm()
-    return render(request, 'create.html', {'form': form})
-
+def accommodation_detail(request, pk):
+    acc = get_object_or_404(Accommodation, pk=pk)
+    return render(request, 'detail.html', {'accommodation': acc, 'is_cedars': request.user.is_cedars_staff})
 
 @login_required
 def create_reservation_view(request):
+    acc_id = request.GET.get('accommodation')
+    accommodation = get_object_or_404(Accommodation, pk=acc_id)
+
     if request.method == 'POST':
         form = ReservationForm(request.POST)
         if form.is_valid():
             reservation = form.save(commit=False)
             reservation.student = request.user
-            reservation.status = 'RESERVED'
+            reservation.accommodation = accommodation
+            reservation.status = 'pending'
             reservation.save()
-            messages.success(request, "Reservation submitted.")
-            return redirect('accommodation_list')
+            return redirect('student_accommodations')
     else:
-        form = ReservationForm()
-    
-    # Show the selected accommodation if already chosen
-    accommodation_id = request.GET.get('accommodation')
-    accommodation = None
-    if accommodation_id:
-        accommodation = Accommodation.objects.filter(id=accommodation_id).first()
+        form = ReservationForm(initial={'accommodation': accommodation.id})
 
     return render(request, 'reserve.html', {
         'form': form,
-        'accommodation': accommodation
+        'accommodation': accommodation,
+        'is_cedars': request.user.is_cedars_staff
     })
+
+@login_required
+def cancel_reservation_view(request, pk):
+    reservation = get_object_or_404(Reservation, pk=pk, student=request.user)
+    if reservation.status in ['confirmed', 'pending']:
+        reservation.status = 'cancelled'
+        reservation.save()
+        messages.info(request, "Reservation cancelled.")
+    return redirect('student_accommodations')
 
 @login_required
 def rate_accommodation_view(request):
@@ -89,36 +59,40 @@ def rate_accommodation_view(request):
         if form.is_valid():
             rating = form.save(commit=False)
             rating.student = request.user
-            if Rating.objects.filter(student=request.user, accommodation=rating.accommodation).exists():
-                messages.error(request, "You've already rated this accommodation.")
-            else:
-                rating.save()
-                messages.success(request, "Thank you for your feedback!")
-                return redirect('accommodation_list')
+            rating.save()
+            messages.success(request, "Thanks for your feedback!")
+            return redirect('student_accommodations')
     else:
         form = RatingForm()
-    return render(request, 'rate.html', {'form': form})
-
+    return render(request, 'rate.html', {'form': form, 'is_cedars': request.user.is_cedars_staff})
 
 @login_required
-def cancel_reservation_view(request, reservation_id):
-    reservation = get_object_or_404(Reservation, id=reservation_id, student=request.user)
-    accommodation = reservation.accommodation
-
+@user_passes_test(is_cedars)
+def create_accommodation_view(request):
     if request.method == 'POST':
-        form = CancelReservationForm(request.POST, instance=reservation)
-        if form.is_valid() and reservation.status == 'RESERVED':
-            reservation.status = 'cancelled'
-            reservation.save()
-            messages.success(request, "Reservation cancelled.")
+        form = AccommodationForm(request.POST)
+        if form.is_valid():
+            acc = form.save(commit=False)
+            acc.created_by = request.user
+            acc.owner = request.user
+            acc.save()
+            messages.success(request, "Accommodation created.")
             return redirect('accommodation_list')
-        else:
-            messages.error(request, "Cannot cancel this reservation.")
     else:
-        form = CancelReservationForm(instance=reservation)
+        form = AccommodationForm()
+    return render(request, 'create.html', {'form': form, 'is_cedars': True})
 
-    return render(request, 'cancel.html', {
-        'form': form,
-        'accommodation': accommodation,
-        'reservation': reservation
-    })
+@login_required
+@user_passes_test(is_cedars)
+def view_all_reservations(request):
+    reservations = Reservation.objects.all()
+    return render(request, 'reservations.html', {'reservations': reservations, 'is_cedars': True})
+
+@login_required
+@user_passes_test(is_cedars)
+def cedars_cancel_reservation(request, pk):
+    reservation = get_object_or_404(Reservation, pk=pk)
+    reservation.status = 'cancelled'
+    reservation.save()
+    messages.info(request, "Reservation cancelled by CEDARS.")
+    return redirect('view_reservations')

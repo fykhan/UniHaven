@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ accommodation.title }}</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <h1>{{ accommodation.title }}</h1>
+
+  <nav>
+    <a href="{% url 'student_accommodations' %}">Back to Listings</a>
+    {% if is_cedars %}
+      | <a href="{% url 'cedars_dashboard' %}">Back to Dashboard</a>
+    {% endif %}
+    | <a href="{% url 'logout' %}">Logout</a>
+  </nav>
+
+  <ul>
+    <li><strong>Type:</strong> {{ accommodation.get_property_type_display }}</li>
+    <li><strong>Price:</strong> ${{ accommodation.price }}</li>
+    <li><strong>Beds:</strong> {{ accommodation.beds }}</li>
+    <li><strong>Bedrooms:</strong> {{ accommodation.bedrooms }}</li>
+    <li><strong>Address:</strong> {{ accommodation.address }}</li>
+    <li><strong>Available From:</strong> {{ accommodation.available_from }}</li>
+    <li><strong>Available To:</strong> {{ accommodation.available_to }}</li>
+  </ul>
+</body>
+</html>

@@ -26,14 +26,13 @@ def login_view(request):
         if user is not None:
             login(request, user)
             if user.is_student:
-                return redirect('student_selection')
+                return redirect(reverse('student_accommodations'))
             elif user.is_cedars_staff:
                 return redirect('cedars_dashboard')
             else:
                 return redirect('home')
         else:
             messages.error(request, 'Invalid credentials')
-            return render(request, 'login.html')
     return render(request, 'login.html')
 
 @csrf_exempt

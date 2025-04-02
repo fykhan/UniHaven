@@ -1,31 +1,32 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'style.css' %}">
-
-  <title>Reserve Accommodation</title>
+  <title>Cancel Reservation</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
 </head>
-
 <body>
-  <header>
-    <h1>Cancel Reservation</h1>
-    <nav><a href="{% url 'accommodation_list' %}">Back</a> | <a href="{% url 'logout' %}">Logout</a></nav>
-  </header>
+  <h1>Cancel Reservation</h1>
 
-  <h3>You're cancelling a reservation for:</h3>
-  <ul>
-    <li><strong>{{ accommodation.title }}</strong></li>
-    <li>Type: {{ accommodation.property_type }}</li>
-    <li>Price: ${{ accommodation.price }}</li>
-    <li>Address: {{ accommodation.address }}</li>
-  </ul>
+  <nav>
+    <a href="{% url 'student_accommodations' %}">Back</a>
+    {% if is_cedars %}
+      | <a href="{% url 'cedars_dashboard' %}">Dashboard</a>
+    {% endif %}
+    | <a href="{% url 'logout' %}">Logout</a>
+  </nav>
 
-  <form method="POST">
+  <section>
+    <h2>{{ reservation.accommodation.title }}</h2>
+    <p><strong>Type:</strong> {{ reservation.accommodation.get_property_type_display }}</p>
+    <p><strong>Price:</strong> ${{ reservation.accommodation.price }}</p>
+    <p><strong>Reserved From:</strong> {{ reservation.start_date }} to {{ reservation.end_date }}</p>
+    <p><strong>Status:</strong> {{ reservation.status }}</p>
+  </section>
+
+  <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Confirm Cancellation</button>
+    <button type="submit">Cancel Reservation</button>
   </form>
-  
 </body>
 </html>
