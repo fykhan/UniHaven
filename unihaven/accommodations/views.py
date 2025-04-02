@@ -96,3 +96,19 @@ def cedars_cancel_reservation(request, pk):
     reservation.save()
     messages.info(request, "Reservation cancelled by CEDARS.")
     return redirect('view_reservations')
+
+@login_required
+def my_reservations_view(request):
+    reservations = Reservation.objects.filter(student=request.user).select_related('accommodation').order_by('-created_at')
+    today = date.today()
+
+    for res in reservations:
+        res.can_rate = (
+            res.status == "completed" or
+            (res.status == "confirmed" and res.end_date < today)
+        )
+
+    return render(request, 'my_reservations.html', {
+        'reservations': reservations,
+        'is_cedars': request.user.is_cedars_staff
+    })

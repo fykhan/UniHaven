@@ -7,7 +7,8 @@ from .views import (
     cancel_reservation_view,
     rate_accommodation_view,
     view_all_reservations,
-    cedars_cancel_reservation
+    cedars_cancel_reservation,
+    my_reservations_view,
 )
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
     path('reserve/', create_reservation_view, name='create_reservation'),
     path('cancel/<int:pk>/', cancel_reservation_view, name='cancel_reservation'),
     path('rate/', rate_accommodation_view, name='rate_accommodation'),
+    path('my-reservations/', my_reservations_view, name='my_reservations'),
 
     # CEDARS
     path('add/', create_accommodation_view, name='add_accommodation'),

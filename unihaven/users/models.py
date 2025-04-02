@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 
 class User(AbstractUser):
+    UID = models.CharField(max_length=10, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
     is_student = models.BooleanField(default=False)
     is_cedars_staff = models.BooleanField(default=False)
@@ -12,7 +13,6 @@ class User(AbstractUser):
         return f"{self.get_full_name() or self.username}"
 
     def save(self, *args, **kwargs):
-        # Automatically promote superusers to cedars_staff
         if self.is_superuser:
             self.is_cedars_staff = True
         super().save(*args, **kwargs)

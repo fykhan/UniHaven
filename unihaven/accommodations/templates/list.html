@@ -13,9 +13,11 @@
     {% if is_cedars %}
       | <a href="{% url 'cedars_dashboard' %}">Back to Dashboard</a>
       | <a href="{% url 'add_accommodation' %}">Add Listing</a>
+    {% else %}
+      | <a href="{% url 'my_reservations' %}">My Reservations</a>
     {% endif %}
   </nav>
-
+  
   <table>
     <tr>
       <th>Title</th>

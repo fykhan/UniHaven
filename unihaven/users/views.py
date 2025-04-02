@@ -11,7 +11,7 @@ def home_view(request):
     user = request.user
     if user.is_authenticated and not user.is_anonymous:
         if user.is_student:
-            return redirect('student_selection')
+            return redirect(reverse('student_accommodations'))
         elif user.is_cedars_staff:
             return redirect('cedars_dashboard')
     return redirect('login')
@@ -25,12 +25,13 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
+            request.session.save()
             if user.is_student:
                 return redirect(reverse('student_accommodations'))
             elif user.is_cedars_staff:
                 return redirect('cedars_dashboard')
             else:
-                return redirect('home')
+                messages.error(request, 'Invalid credentials')
         else:
             messages.error(request, 'Invalid credentials')
     return render(request, 'login.html')
