@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>All Reservations</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+
+  <h1>CEDARS - All Reservations</h1>
+
+  <nav>
+    <a href="{% url 'student_accommodations' %}">Accommodation Listings</a>
+    | <a href="{% url 'cedars_dashboard' %}">Back to Dashboard</a>
+    | <a href="{% url 'logout' %}">Logout</a>
+  </nav>
+
+  {% if reservations %}
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Accommodation</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for res in reservations %}
+        <tr>
+          <td>{{ res.student.get_full_name }} ({{ res.student.username }})</td>
+          <td>{{ res.accommodation.title }}</td>
+          <td>{{ res.start_date }}</td>
+          <td>{{ res.end_date }}</td>
+          <td>{{ res.status|capfirst }}</td>
+          <td>
+            {% if res.status != 'cancelled' %}
+              <a href="{% url 'cedars_cancel_reservation' res.id %}">Cancel</a>
+            {% else %}
+              <span class="muted">Already Cancelled</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No reservations found.</p>
+  {% endif %}
+
+</body>
+</html>

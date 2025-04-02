@@ -12,37 +12,46 @@
     <a href="{% url 'logout' %}">Logout</a>
     {% if is_cedars %}
       | <a href="{% url 'cedars_dashboard' %}">Back to Dashboard</a>
-      | <a href="{% url 'add_accommodation' %}">Add Listing</a>
+      | <a href="{% url 'view_all_ratings' %}">All Ratings</a>
+      | <a href="{% url 'logout' %}">Logout</a>      
     {% else %}
       | <a href="{% url 'my_reservations' %}">My Reservations</a>
     {% endif %}
   </nav>
-  
+
   <table>
-    <tr>
-      <th>Title</th>
-      <th>Type</th>
-      <th>Price</th>
-      <th>Available From</th>
-      <th>Actions</th>
-    </tr>
-    {% for acc in accommodations %}
-    <tr>
-      <td>{{ acc.title }}</td>
-      <td>{{ acc.property_type }}</td>
-      <td>${{ acc.price }}</td>
-      <td>{{ acc.available_from }}</td>
-      <td>
-        <a href="{% url 'accommodation_detail' acc.id %}">View</a>
-        {% if not is_cedars %}
-          | <a href="{% url 'create_reservation' %}?accommodation={{ acc.id }}">Reserve</a>
-          {% if acc.can_rate %}
-            | <a href="{% url 'rate_accommodation' %}?accommodation={{ acc.id }}">Rate</a>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Type</th>
+        <th>Price</th>
+        <th>Available From</th>
+        <th>Bedrooms</th>
+        <th>Rating</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for acc in accommodations %}
+      <tr>
+        <td>{{ acc.title }}</td>
+        <td>{{ acc.get_property_type_display }}</td>
+        <td>${{ acc.price }}</td>
+        <td>{{ acc.available_from }}</td>
+        <td>{{ acc.bedrooms }}</td>
+        <td>{{ acc.average_rating }}/5</td>
+        <td>
+          <a href="{% url 'accommodation_detail' acc.id %}">View</a>
+          {% if not is_cedars %}
+            | <a href="{% url 'create_reservation' %}?accommodation={{ acc.id }}">Reserve</a>
+            {% if acc.can_rate %}
+              | <a href="{% url 'rate_accommodation' %}?accommodation={{ acc.id }}">Rate</a>
+            {% endif %}
           {% endif %}
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
 </body>
 </html>

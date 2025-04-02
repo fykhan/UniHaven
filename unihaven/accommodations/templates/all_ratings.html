@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>All Ratings</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+
+  <h1>CEDARS - All Ratings</h1>
+
+  <nav>
+    <a href="{% url 'student_accommodations' %}">Accommodation Listings</a>
+    | <a href="{% url 'cedars_dashboard' %}">Back to Dashboard</a>
+    | <a href="{% url 'view_reservations' %}">All Reservations</a>
+    | <a href="{% url 'logout' %}">Logout</a>
+  </nav>
+
+  {% if ratings %}
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Accommodation</th>
+          <th>Score</th>
+          <th>Comment</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rating in ratings %}
+        <tr>
+          <td>{{ rating.student.get_full_name }}</td>
+          <td>{{ rating.accommodation.title }}</td>
+          <td>{{ rating.value }}/5</td>
+          <td>{{ rating.comment|default:"—" }}</td>
+          <td>{{ rating.created_at|date:"Y-m-d" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No ratings available.</p>
+  {% endif %}
+
+</body>
+</html>

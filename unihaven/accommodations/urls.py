@@ -9,6 +9,7 @@ from .views import (
     view_all_reservations,
     cedars_cancel_reservation,
     my_reservations_view,
+    view_all_ratings,
 )
 
 urlpatterns = [
@@ -24,4 +25,6 @@ urlpatterns = [
     path('add/', create_accommodation_view, name='add_accommodation'),
     path('reservations/', view_all_reservations, name='view_reservations'),
     path('cancel-admin/<int:pk>/', cedars_cancel_reservation, name='cedars_cancel_reservation'),
+    path('ratings/', view_all_ratings, name='view_all_ratings'),
+
 ]

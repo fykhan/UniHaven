@@ -5,6 +5,8 @@ from django.http import HttpResponseForbidden
 from .models import Accommodation, Reservation, Rating
 from .forms import AccommodationForm, ReservationForm, RatingForm
 from datetime import date
+from django.db.models import Avg
+from django.contrib import messages
 
 def is_cedars(user):
     return user.is_cedars_staff or user.is_superuser
@@ -54,19 +56,31 @@ def cancel_reservation_view(request, pk):
 
 @login_required
 def rate_accommodation_view(request):
+    acc_id = request.GET.get('accommodation') or request.POST.get('accommodation')
+    accommodation = get_object_or_404(Accommodation, id=acc_id)
+
     if request.method == 'POST':
         form = RatingForm(request.POST)
         if form.is_valid():
             rating = form.save(commit=False)
             rating.student = request.user
             rating.save()
-            messages.success(request, "Thanks for your feedback!")
-            return redirect('student_accommodations')
-        else:
-            messages.error(request, "Invalid rating. Please ensure the value is between 1 and 5.")
+
+            new_avg = accommodation.ratings.aggregate(avg=Avg('value'))['avg'] or 0
+            accommodation.rating = round(new_avg, 2)
+            accommodation.save()
+
+            messages.success(request, "Thank you! Your rating has been submitted.")
+            return redirect('student_accommodations')  # 👈 Redirect to list
     else:
-        form = RatingForm()
-    return render(request, 'rate.html', {'form': form, 'is_cedars': request.user.is_cedars_staff})
+        form = RatingForm(initial={'accommodation': acc_id})
+
+    return render(request, 'rate.html', {
+        'form': form,
+        'accommodation': accommodation,
+        'is_cedars': request.user.is_cedars_staff
+    })
+
 
 @login_required
 @user_passes_test(is_cedars)
@@ -114,4 +128,13 @@ def my_reservations_view(request):
     return render(request, 'my_reservations.html', {
         'reservations': reservations,
         'is_cedars': request.user.is_cedars_staff
+    })
+
+@login_required
+@user_passes_test(is_cedars)
+def view_all_ratings(request):
+    ratings = Rating.objects.select_related('student', 'accommodation').order_by('-created_at')
+    return render(request, 'all_ratings.html', {
+        'ratings': ratings,
+        'is_cedars': True
     })

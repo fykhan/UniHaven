@@ -25,7 +25,6 @@ class ReservationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Hide accommodation field in UI since it's passed via URL/view
         self.fields['accommodation'].widget = forms.HiddenInput()
 
 

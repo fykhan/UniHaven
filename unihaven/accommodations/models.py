@@ -1,8 +1,9 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import User
 from datetime import date, datetime
+from django.db.models import Avg
+
 
 
 # Create your models here.
@@ -30,9 +31,14 @@ class Accommodation(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_accommodations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0, validators=[MinValueValidator(0), MaxValueValidator(5)])
     reserved = models.BooleanField(default=False)
     reserved_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='reserved_accommodations')
+
+    def average_rating(self):
+        ratings = self.ratings.all()
+        total = sum(r.value for r in ratings)
+        count = ratings.count()
+        return round(total / count, 2) if count > 0 else 0
 
     def __str__(self):
         return f"{self.title} - {self.get_property_type_display()}"
@@ -53,7 +59,7 @@ class Reservation(models.Model):
     def update_status(self):
         today = date.today()
         if self.status in ['cancelled', 'completed']:
-            return  # Do not update if already cancelled or completed
+            return
 
         if self.end_date < today:
             self.status = 'completed'
