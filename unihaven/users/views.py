@@ -37,3 +37,14 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+@login_required
+def student_selection_view(request):
+    return render(request, 'student_selection.html')
+
+
+def reserve_view(request):
+    return render(request, 'reserve.html')  
+
+def rate_view(request):
+    return render(request, 'rate.html')  

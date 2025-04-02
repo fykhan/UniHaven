@@ -1,15 +1,63 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Selection</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 50px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        p {
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 15px 0;
+        }
+        a {
+            text-decoration: none;
+            padding: 15px 25px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: background-color 0.3s, transform 0.3s;
+            display: inline-block;
+        }
+        a:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        footer {
+            margin-top: 50px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome !</h1>
+    <h1>Welcome!</h1>
+    <p>Please choose an option:</p>
     <ul>
-        <li><a href="api/reservations/">Booking</a></li>
-        <li><a href="api/ratings/">Rating</a></li>
+        <li><a href="/accommodations/reserve/">Booking</a></li>
+        <li><a href="/accommodations/rate/">Rating</a></li>
     </ul>
+    <footer>
+        &copy; 2025 UniHaven. All rights reserved.
+    </footer>
 </body>
 </html>
