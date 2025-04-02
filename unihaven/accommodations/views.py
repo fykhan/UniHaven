@@ -71,7 +71,7 @@ def rate_accommodation_view(request):
             accommodation.save()
 
             messages.success(request, "Thank you! Your rating has been submitted.")
-            return redirect('student_accommodations')  # 👈 Redirect to list
+            return redirect('student_accommodations')
     else:
         form = RatingForm(initial={'accommodation': acc_id})
 

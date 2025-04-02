@@ -4,8 +4,6 @@ from users.models import User
 from datetime import date, datetime
 from django.db.models import Avg
 
-
-
 # Create your models here.
 class Accommodation(models.Model):
     PROPERTY_TYPES = [
