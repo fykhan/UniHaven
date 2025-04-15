@@ -6,11 +6,6 @@ from api.models import Accommodation, Reservation, Rating
 class AccommodationAdmin(admin.ModelAdmin):
     list_display = ('title', 'property_type', 'price', 'available_from', 'available_to', 'is_available', 'average_rating')
 
-    def average_rating(self, obj):
-        avg = obj.ratings.aggregate_avg('value') or 0
-        return round(avg, 2)
-    average_rating.short_description = "Rating"
-
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
     list_display = ('accommodation', 'student', 'start_date', 'end_date', 'status', 'created_at')
