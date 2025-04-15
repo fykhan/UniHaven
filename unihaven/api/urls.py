@@ -1,11 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
+from .viewsets import (
     AccommodationViewSet,
     ReservationViewSet,
     RatingViewSet,
-    AddressLookupView
 )
+from .views import AddressLookupView, AccommodationFilterView  
 
 router = DefaultRouter()
 router.register(r'accommodations', AccommodationViewSet)
@@ -13,6 +13,7 @@ router.register(r'reservations', ReservationViewSet)
 router.register(r'ratings', RatingViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("accommodations/filter/", AccommodationFilterView.as_view(), name="accommodation-filter"),
     path('address-lookup/', AddressLookupView.as_view(), name='address-lookup'),
+    path('', include(router.urls)),
 ]

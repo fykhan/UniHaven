@@ -13,18 +13,14 @@ from .views import (
 )
 
 urlpatterns = [
-    # Student
-    path('', student_accommodation_list, name='student_accommodations'),
+    path('', student_accommodation_list, name='accommodation_list'),
     path('<int:pk>/', accommodation_detail, name='accommodation_detail'),
+    path('add/', create_accommodation_view, name='create_accommodation'),
     path('reserve/', create_reservation_view, name='create_reservation'),
     path('cancel/<int:pk>/', cancel_reservation_view, name='cancel_reservation'),
     path('rate/', rate_accommodation_view, name='rate_accommodation'),
-    path('my-reservations/', my_reservations_view, name='my_reservations'),
-
-    # CEDARS
-    path('add/', create_accommodation_view, name='add_accommodation'),
     path('reservations/', view_all_reservations, name='view_reservations'),
-    path('cancel-admin/<int:pk>/', cedars_cancel_reservation, name='cedars_cancel_reservation'),
-    path('ratings/', view_all_ratings, name='view_all_ratings'),
-
+    path('reservations/cancel/<int:pk>/', cedars_cancel_reservation, name='cedars_cancel_reservation'),
+    path('my-reservations/', my_reservations_view, name='my_reservations'),
+    path('all-ratings/', view_all_ratings, name='view_all_ratings'),
 ]

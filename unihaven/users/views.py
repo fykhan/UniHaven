@@ -27,7 +27,7 @@ def login_view(request):
             login(request, user)
             request.session.save()
             if user.is_student:
-                return redirect(reverse('student_accommodations'))
+                return redirect(reverse('accommodation_list'))
             elif user.is_cedars_staff:
                 return redirect('cedars_dashboard')
             else:

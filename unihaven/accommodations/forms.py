@@ -1,47 +1,36 @@
 from django import forms
-from .models import Accommodation, Reservation, Rating
 
-class AccommodationForm(forms.ModelForm):
-    class Meta:
-        model = Accommodation
-        fields = [
-            'title', 'description', 'property_type', 'price', 'beds', 'bedrooms',
-            'address', 'latitude', 'longitude', 'available_from', 'available_to'
-        ]
-        widgets = {
-            'available_from': forms.DateInput(attrs={'type': 'date'}),
-            'available_to': forms.DateInput(attrs={'type': 'date'}),
-        }
-
-
-class ReservationForm(forms.ModelForm):
-    class Meta:
-        model = Reservation
-        fields = ['accommodation', 'start_date', 'end_date']
-        widgets = {
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['accommodation'].widget = forms.HiddenInput()
+class AccommodationForm(forms.Form):
+    title = forms.CharField(max_length=200)
+    description = forms.CharField(widget=forms.Textarea)
+    property_type = forms.ChoiceField(choices=[
+        ('AP', 'Apartment'),
+        ('HM', 'House - Entire'),
+        ('HR', 'House - Room'),
+        ('SH', 'Shared Room'),
+    ])
+    price = forms.DecimalField(max_digits=8, decimal_places=2)
+    beds = forms.IntegerField(min_value=1)
+    bedrooms = forms.IntegerField(min_value=0)
+    address = forms.CharField(widget=forms.Textarea)
+    latitude = forms.DecimalField(max_digits=9, decimal_places=6)
+    longitude = forms.DecimalField(max_digits=9, decimal_places=6)
+    available_from = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    available_to = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
 
 
-class RatingForm(forms.ModelForm):
-    class Meta:
-        model = Rating
-        fields = ['accommodation', 'value', 'comment']
-        widgets = {
-            'comment': forms.Textarea(attrs={'rows': 4}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['accommodation'].widget = forms.HiddenInput()
+class ReservationForm(forms.Form):
+    accommodation = forms.IntegerField(widget=forms.HiddenInput())
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
 
 
-class CancelReservationForm(forms.ModelForm):
-    class Meta:
-        model = Reservation
-        fields = []
+class RatingForm(forms.Form):
+    accommodation = forms.IntegerField(widget=forms.HiddenInput())
+    value = forms.IntegerField(min_value=1, max_value=5)
+    comment = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
+
+
+class CancelReservationForm(forms.Form):
+    # Empty form for "confirm cancel" buttons
+    pass

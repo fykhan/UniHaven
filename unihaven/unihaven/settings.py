@@ -29,7 +29,7 @@ SECRET_KEY = "django-insecure-7&vn1^yp1#7tbuit7^9g(f+ph1s1x!7t5)v^ppjusciq9mtn6c
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+API_BASE_URL = 'http://127.0.0.1:8000/api/'
 
 # Application definition
 
