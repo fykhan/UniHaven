@@ -11,7 +11,7 @@ def home_view(request):
     user = request.user
     if user.is_authenticated and not user.is_anonymous:
         if user.is_student:
-            return redirect(reverse('student_accommodations'))
+            return redirect(reverse('accommodation_list'))
         elif user.is_cedars_staff:
             return redirect('cedars_dashboard')
     return redirect('login')
