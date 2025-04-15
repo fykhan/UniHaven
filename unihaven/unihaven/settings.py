@@ -31,6 +31,8 @@ DEBUG = True
 ALLOWED_HOSTS = []
 API_BASE_URL = 'http://127.0.0.1:8000/api/'
 
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework.authtoken',
     'rest_framework',
     'users',
     'accommodations',
@@ -137,5 +140,5 @@ REST_FRAMEWORK = {
 
 # email settings
 # we will test email by printing it to console
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  
-DEFAULT_FROM_EMAIL = 'u3606584@connect.hku.hk'  
+DEFAULT_FROM_EMAIL = "noreply@unihaven.hk"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

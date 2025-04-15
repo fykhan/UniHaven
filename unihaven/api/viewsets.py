@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from django.db.models import Avg
 from api.models import Accommodation, Reservation, Rating
 from api.serializers import AccommodationSerializer, ReservationSerializer, RatingSerializer
+from django.core.mail import send_mail
+from users.models import User
+from django.conf import settings
 
 class AccommodationViewSet(viewsets.ModelViewSet):
     queryset = Accommodation.objects.all()
@@ -33,6 +36,37 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
+
+    def perform_create(self, serializer):
+        reservation = serializer.save()
+        self.notify_cedars_staff(reservation, created=True)
+
+    def perform_destroy(self, instance):
+        instance.status = 'cancelled'
+        instance.save()
+        self.notify_cedars_staff(instance, created=False)
+
+    def notify_cedars_staff(self, reservation, created=True):
+        subject = "New Reservation Created" if created else "Reservation Cancelled"
+        accommodation_title = reservation.accommodation.title
+        message = (
+            f"A reservation has been {'created' if created else 'cancelled'}:\n"
+            f"Accommodation: {accommodation_title}\n"
+            f"Student: {reservation.student.get_full_name()} ({reservation.student.email})\n"
+            f"Dates: {reservation.start_date} to {reservation.end_date}"
+        )
+
+        cedars_users = User.objects.filter(is_cedars_staff=True)
+        recipients = [user.email for user in cedars_users if user.email]
+
+        if recipients:
+            send_mail(
+                subject='UniHaven: Reservation Cancelled',
+                message='The reservation has been cancelled successfully.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipients,
+                fail_silently=True
+            )
 
 class RatingViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()

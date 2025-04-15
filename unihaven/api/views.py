@@ -1,17 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from api.models import Accommodation
-from api.serializers import AccommodationSerializer
+from rest_framework import status, permissions
+from api.models import Reservation, Accommodation
+from api.serializers import AccommodationSerializer, ReservationSerializer
 from django.db.models import Q
 import math, requests
-
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class AccommodationFilterView(APIView):
     def get(self, request):
         accommodations = Accommodation.objects.filter(is_available=True)
 
-        # Filters
         property_type = request.GET.get('property_type')
         if property_type:
             accommodations = accommodations.filter(property_type=property_type)
