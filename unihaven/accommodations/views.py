@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from accommodations.forms import AccommodationForm, ReservationForm, RatingForm
 from datetime import date
+from django.core.mail import send_mail
 
 API_BASE_URL = settings.API_BASE_URL
 
@@ -46,6 +47,15 @@ def create_reservation_view(request):
             res = requests.post(f"{API_BASE_URL}reservations/", data=data)
             if res.status_code == 201:
                 messages.success(request, "Reservation successful.")
+                send_mail(
+                    subject='UniHaven: Reservation Confirmation',
+                    message=f'You are successfully {accommodation.get("title", "accommodations")}\n'
+                            f'Time: {data["start_date"]} to {data["end_date"]}\n'
+                            f'Thank you for using UniHaven!',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[request.user.email],
+                    fail_silently=True, 
+                )
                 return redirect('accommodation_list')
             else:
                 messages.error(request, "Reservation failed.")
@@ -60,6 +70,13 @@ def cancel_reservation_view(request, pk):
     res = requests.post(f"{API_BASE_URL}reservations/{pk}/cancel/")
     if res.status_code == 200:
         messages.info(request, "Reservation cancelled.")
+        send_mail(
+            subject='UniHaven: Reservation Cancellation',
+            message='Your reservation is successfully cancelled\nThank you for using UniHaven!',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[request.user.email],
+            fail_silently=True,  
+        )
     else:
         messages.error(request, "Cancellation failed.")
     return redirect('accommodation_list')
