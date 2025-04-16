@@ -51,6 +51,7 @@ def create_reservation_view(request):
             }
             res = requests.post(f"{API_BASE_URL}reservations/", json=payload)
             if res.status_code == 201:
+                print("Reservation created successfully.")
                 messages.success(request, "Reservation created successfully.")
                 return redirect("accommodation_list")
             else:
