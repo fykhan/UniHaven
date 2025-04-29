@@ -8,10 +8,33 @@ import math, requests
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 User = get_user_model()
+from rest_framework.authtoken.models import Token
+from rest_framework.permissions import IsAuthenticated
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "university": user.university,
+            "role": "staff" if user.is_cedars_staff else "student",
+            "token": token.key
+        })
+
 
 class AccommodationFilterView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
+        user = request.user
         accommodations = Accommodation.objects.filter(is_available=True)
+
+        accommodations = accommodations.filter(universities_offered__university=user.university)
 
         property_type = request.GET.get('property_type')
         if property_type:
@@ -41,30 +64,66 @@ class AccommodationFilterView(APIView):
         if max_price:
             accommodations = accommodations.filter(price__lte=float(max_price))
 
-        # Distance Calculation (Optional)
+        room_number = request.GET.get('room_number')
+        if room_number:
+            accommodations = accommodations.filter(room_number=room_number)
+
+        flat_number = request.GET.get('flat_number')
+        if flat_number:
+            accommodations = accommodations.filter(flat_number=flat_number)
+
+        floor_number = request.GET.get('floor_number')
+        if floor_number:
+            accommodations = accommodations.filter(floor_number=floor_number)
+
         base_lat = request.GET.get('latitude')
         base_lng = request.GET.get('longitude')
 
-        annotated_data = []
         if base_lat and base_lng:
             base_lat = float(base_lat)
             base_lng = float(base_lng)
-            for acc in accommodations:
-                if acc.latitude and acc.longitude:
-                    distance = self.calculate_distance(base_lat, base_lng, float(acc.latitude), float(acc.longitude))
-                else:
-                    distance = float('inf')  # Large distance if missing
-                annotated_data.append((acc, distance))
-
-            annotated_data.sort(key=lambda x: x[1])
-            accommodations = [item[0] for item in annotated_data]
+            accommodations = sorted(
+                accommodations,
+                key=lambda acc: self.calculate_distance(base_lat, base_lng, float(acc.latitude), float(acc.longitude))
+                if acc.latitude and acc.longitude else float('inf')
+            )
 
         serializer = AccommodationSerializer(accommodations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def calculate_distance(self, lat1, lon1, lat2, lon2):
-        # Equirectangular approximation
-        R = 6371  # km
+        R = 6371
         x = math.radians(lon2 - lon1) * math.cos(math.radians((lat1 + lat2) / 2))
         y = math.radians(lat2 - lat1)
         return R * math.sqrt(x * x + y * y)
+
+
+class ReservationFilterView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.is_student:
+            reservations = Reservation.objects.filter(student=user)
+        elif user.is_cedars_staff:
+            reservations = Reservation.objects.filter(accommodation__universities_offered__university=user.university)
+        else:
+            reservations = Reservation.objects.none()
+
+        serializer = ReservationSerializer(reservations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ReservationCancelView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, pk):
+        reservation = get_object_or_404(Reservation, pk=pk)
+        user = request.user
+
+        if user == reservation.student or (user.is_cedars_staff and reservation.accommodation.universities_offered.filter(university=user.university).exists()):
+            reservation.status = 'cancelled'
+            reservation.save()
+            return Response({'message': 'Reservation cancelled.'}, status=status.HTTP_200_OK)
+
+        return Response({'detail': 'Not authorized to cancel this reservation.'}, status=status.HTTP_403_FORBIDDEN)

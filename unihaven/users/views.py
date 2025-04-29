@@ -7,14 +7,16 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import User
 
+
 def home_view(request):
     user = request.user
     if user.is_authenticated and not user.is_anonymous:
         if user.is_student:
-            return redirect(reverse('accommodation_list'))
+            return redirect(reverse('student_selection'))
         elif user.is_cedars_staff:
             return redirect('cedars_dashboard')
     return redirect('login')
+
 
 @csrf_exempt
 def login_view(request):
@@ -27,14 +29,15 @@ def login_view(request):
             login(request, user)
             request.session.save()
             if user.is_student:
-                return redirect(reverse('accommodation_list'))
+                return redirect(reverse('student_selection'))
             elif user.is_cedars_staff:
                 return redirect('cedars_dashboard')
             else:
-                messages.error(request, 'Invalid credentials')
+                messages.error(request, 'Invalid user role')
         else:
             messages.error(request, 'Invalid credentials')
     return render(request, 'login.html')
+
 
 @csrf_exempt
 def logout_view(request):
@@ -45,10 +48,16 @@ def logout_view(request):
         logout(request)
         return redirect('home')
 
+
 def student_selection_view(request):
-    return render(request, 'student_selection.html')
+    if request.user.is_authenticated:
+        university = request.user.university
+        return render(request, 'student_selection.html', {'university': university})
+    return redirect('login')
+
 
 @login_required
 @user_passes_test(lambda u: u.is_authenticated and (u.is_superuser or u.is_cedars_staff))
 def cedars_dashboard_view(request):
-    return render(request, 'cedars_dashboard.html')
+    university = request.user.university
+    return render(request, 'cedars_dashboard.html', {'university': university})

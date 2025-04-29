@@ -133,12 +133,15 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',  
+        'rest_framework.authentication.TokenAuthentication',
     ]
 }
 
+
 # email settings
 # we will test email by printing it to console
-DEFAULT_FROM_EMAIL = "noreply@unihaven.hk"
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = BASE_DIR / "emails"  # or any folder you want
+DEFAULT_FROM_EMAIL = 'noreply@unihaven.hk'

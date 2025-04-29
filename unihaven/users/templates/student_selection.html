@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Selection</title>
+    <title>Student Dashboard</title>
 </head>
 <body>
-    <h1>Welcome !</h1>
+    <h1>Welcome, {{ request.user.username }}!</h1>
+    <p>You are viewing accommodation listings for: <strong>{{ university }}</strong></p>
     <ul>
-        <li><a href="api/reservations/">Booking</a></li>
-        <li><a href="api/ratings/">Rating</a></li>
+        <li><a href="/api/reservations/">Booking</a></li>
+        <li><a href="/api/ratings/">Rating</a></li>
     </ul>
 </body>
 </html>
