@@ -112,7 +112,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 fail_silently=True
             )
 
-
 class RatingViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
@@ -120,11 +119,28 @@ class RatingViewSet(viewsets.ModelViewSet):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        user = request.user
+        data = request.data.copy()
+        accommodation_id = data.get("accommodation")
+
+        # Ensure the student completed a reservation for this accommodation
+        has_reserved = Reservation.objects.filter(
+            student=user,
+            accommodation_id=accommodation_id,
+            status='completed'
+        ).exists()
+
+        if not has_reserved:
+            raise PermissionDenied("You can only rate accommodations you've completed a reservation for.")
+
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        rating = serializer.save()
+        rating = serializer.save(student=user)
+
+        # Update average rating
         acc = rating.accommodation
         avg = acc.ratings.aggregate(avg=Avg('value'))['avg'] or 0
         acc.rating = round(avg, 2)
         acc.save()
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)

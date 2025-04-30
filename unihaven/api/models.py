@@ -83,7 +83,7 @@ class Accommodation(models.Model):
     reserved = models.BooleanField(default=False)
     reserved_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='reserved_accommodations')
     campus_distances = JSONField(default=dict)
-
+    rating = models.FloatField(default=0.0)
     def save(self, *args, **kwargs):
         if not self.latitude or not self.longitude or not self.geo_address:
             lat, lon, geo_addr = lookup_coordinates_and_geoaddress(self.address)
@@ -109,9 +109,6 @@ class Accommodation(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.get_property_type_display()}"
-
-    class Meta:
-        unique_together = ('geo_address', 'flat_number', 'floor_number', 'room_number')
 
 class Reservation(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -149,8 +146,6 @@ class Rating(models.Model):
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ('accommodation', 'student')
 
     def __str__(self):
         return f"{self.value} stars for {self.accommodation.title}"
