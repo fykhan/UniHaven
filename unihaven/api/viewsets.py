@@ -5,28 +5,24 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Avg
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from api.models import Accommodation, Reservation, Rating
 from api.serializers import AccommodationSerializer, ReservationSerializer, RatingSerializer
-from users.models import User
+
 
 class AccommodationViewSet(viewsets.ModelViewSet):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
         user = self.request.user
-        return [
-            acc for acc in Accommodation.objects.all()
-            if user.university in acc.universities_offered
-        ]
+        all_accommodations = Accommodation.objects.all()
+        return [acc for acc in all_accommodations if user.university in acc.universities_offered]
+
 
     def perform_create(self, serializer):
-        if not self.request.user.is_cedars_staff:
-            raise PermissionDenied("Only university staff can add accommodations.")
-
         data = serializer.validated_data
         existing = Accommodation.objects.filter(
             address=data.get('address'),
@@ -40,31 +36,20 @@ class AccommodationViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
-        if not self.request.user.is_cedars_staff:
-            raise PermissionDenied("Only university staff can delete accommodations.")
         instance.delete()
 
     def perform_update(self, serializer):
-        if not self.request.user.is_cedars_staff:
-            raise PermissionDenied("Only university staff can update accommodations.")
         serializer.save()
 
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_student:
-            return Reservation.objects.filter(student=user)
-        elif user.is_cedars_staff:
-            return [
-                r for r in Reservation.objects.all()
-                if r.student.university == user.university
-            ]
-        return []
+        return Reservation.objects.filter(created_by__university=user.university)
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -81,63 +66,43 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if active_reservations >= accommodation.beds:
             raise PermissionDenied("This accommodation is fully booked.")
 
-        serializer.save(student=user)
-        self.notify_staff(accommodation, user)
+        serializer.save(created_by=user)
+        self.notify_staff(accommodation, serializer.validated_data['student_name'], cancelled=False)
 
     def perform_destroy(self, instance):
-        user = self.request.user
-        if user == instance.student or (user.is_cedars_staff and instance.student.university == user.university):
-            instance.status = 'cancelled'
-            instance.save()
-            self.notify_staff(instance.accommodation, instance.student, cancelled=True)
-            return
-        raise PermissionDenied("Not authorized to cancel this reservation.")
+        instance.status = 'cancelled'
+        instance.save()
+        self.notify_staff(instance.accommodation, instance.student_name, cancelled=True)
 
-    def notify_staff(self, accommodation, student, cancelled=False):
-        staff_users = User.objects.filter(is_cedars_staff=True, university=student.university)
-        emails = [s.email for s in staff_users if s.email]
-        if emails:
-            action = "cancelled" if cancelled else "made"
-            subject = f"Reservation {action.capitalize()} Notification"
-            message = (
-                f"A reservation has been {action} by {student.first_name} {student.last_name} ({student.username}); UID: {student.UID} for: {accommodation.title}\n"
-                f"University: {student.university}\n"
-                f"Reservation status: {'Cancelled' if cancelled else 'Active'}"
-            )
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=emails,
-                fail_silently=True
-            )
+    def notify_staff(self, accommodation, student_name, cancelled=False):
+        subject = f"Reservation {'Cancelled' if cancelled else 'Created'} - {accommodation.title}"
+        message = (
+            f"Reservation for {student_name} has been {'cancelled' if cancelled else 'created'} for {accommodation.title}\n"
+            f"University: {self.request.user.university}"
+        )
+        uni_email = f"accommodation@{self.request.user.university.lower()}.hk"
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[uni_email],
+            fail_silently=True,
+        )
 
 class RatingViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
 
     def create(self, request, *args, **kwargs):
         user = request.user
         data = request.data.copy()
-        accommodation_id = data.get("accommodation")
-
-        # Ensure the student completed a reservation for this accommodation
-        has_reserved = Reservation.objects.filter(
-            student=user,
-            accommodation_id=accommodation_id,
-            status='completed'
-        ).exists()
-
-        if not has_reserved:
-            raise PermissionDenied("You can only rate accommodations you've completed a reservation for.")
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        rating = serializer.save(student=user)
+        rating = serializer.save(created_by=user)
 
-        # Update average rating
         acc = rating.accommodation
         avg = acc.ratings.aggregate(avg=Avg('value'))['avg'] or 0
         acc.rating = round(avg, 2)

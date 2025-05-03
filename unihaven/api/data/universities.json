@@ -1,0 +1,30 @@
+{
+    "universities": [
+      {
+        "code": "HKU",
+        "name": "The University of Hong Kong",
+        "campuses": {
+          "Main Campus": [22.28405, 114.13784],
+          "Sassoon Road Campus": [22.2675, 114.12881],
+          "Swire Institute of Marine Science": [22.20805, 114.26021],
+          "Kadoorie Centre": [22.43022, 114.11429],
+          "Faculty of Dentistry": [22.28649, 114.14426]
+        }
+      },
+      {
+        "code": "CUHK",
+        "name": "The Chinese University of Hong Kong",
+        "campuses": {
+          "Main Campus": [22.41907, 114.20693]
+        }
+      },
+      {
+        "code": "HKUST",
+        "name": "The Hong Kong University of Science and Technology",
+        "campuses": {
+          "Main Campus": [22.33584, 114.26355]
+        }
+      }
+    ]
+  }
+  

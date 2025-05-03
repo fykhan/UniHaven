@@ -1,27 +1,35 @@
 import requests
 import math
+import json
+import os
 from datetime import date, datetime
 from django.db import models
 from django.db.models import Avg
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import JSONField
+from django.conf import settings
 from users.models import User
 
-LOCATIONS = {
-    "HKU - Main Campus": (22.28405, 114.13784),
-    "HKU - Sassoon Road Campus": (22.2675, 114.12881),
-    "HKU - Swire Institute of Marine Science": (22.20805, 114.26021),
-    "HKU - Kadoorie Centre": (22.43022, 114.11429),
-    "HKU - Faculty of Dentistry": (22.28649, 114.14426),
-    "HKUST - Main Campus": (22.33584, 114.26355),
-    "CUHK - Main Campus": (22.41907, 114.20693),
-}
+# Load university data dynamically
+DATA_PATH = os.path.join(settings.BASE_DIR, 'api/data/universities.json')
 
-UNIVERSITY_CHOICES = [
-    ('HKU', 'The University of Hong Kong'),
-    ('CUHK', 'The Chinese University of Hong Kong'),
-    ('HKUST', 'The Hong Kong University of Science and Technology'),
-]
+def load_universities():
+    with open(DATA_PATH) as f:
+        return json.load(f)["universities"]
+
+def get_university_choices():
+    return [(u["code"], u["name"]) for u in load_universities()]
+
+def get_all_locations():
+    result = {}
+    for u in load_universities():
+        for label, coords in u["campuses"].items():
+            key = f"{u['code']} - {label}"
+            result[key] = tuple(coords)
+    return result
+
+LOCATIONS = get_all_locations()
+UNIVERSITY_CHOICES = get_university_choices()
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
@@ -81,9 +89,9 @@ class Accommodation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     reserved = models.BooleanField(default=False)
-    reserved_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='reserved_accommodations')
     campus_distances = JSONField(default=dict)
     rating = models.FloatField(default=0.0)
+
     def save(self, *args, **kwargs):
         if not self.latitude or not self.longitude or not self.geo_address:
             lat, lon, geo_addr = lookup_coordinates_and_geoaddress(self.address)
@@ -111,8 +119,9 @@ class Accommodation(models.Model):
         return f"{self.title} - {self.get_property_type_display()}"
 
 class Reservation(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
     accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE)
+    student_name = models.CharField(max_length=255)
+    student_email = models.EmailField()
     start_date = models.DateField()
     end_date = models.DateField()
     status = models.CharField(max_length=20, default='pending', choices=[
@@ -121,6 +130,7 @@ class Reservation(models.Model):
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
     ])
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=datetime.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -141,11 +151,11 @@ class Reservation(models.Model):
 
 class Rating(models.Model):
     accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='ratings')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_ratings')
+    student_name = models.CharField(max_length=255)
     value = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
 
     def __str__(self):
         return f"{self.value} stars for {self.accommodation.title}"

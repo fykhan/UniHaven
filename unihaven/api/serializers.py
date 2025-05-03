@@ -14,18 +14,19 @@ class AccommodationSerializer(serializers.ModelSerializer):
         unique_together = ('geo_address', 'flat_number', 'floor_number', 'room_number')
 
 class ReservationSerializer(serializers.ModelSerializer):
-    student = serializers.ReadOnlyField(source='student.username')
+    created_by = serializers.ReadOnlyField(source='created_by.username')
 
     class Meta:
         model = Reservation
         fields = '__all__'
-        read_only_fields = ['student']
+        read_only_fields = ['created_by']
 
 class RatingSerializer(serializers.ModelSerializer):
-    student = serializers.ReadOnlyField(source='student.username')
+    created_by = serializers.ReadOnlyField(source='created_by.username')
     created_at = serializers.ReadOnlyField()
 
     class Meta:
         model = Rating
-        fields = ['id', 'accommodation', 'student', 'value', 'comment', 'created_at']
-        read_only_fields = ['student', 'created_at']
+        unique_together = ('accommodation', 'student_name')
+        fields = ['id', 'accommodation', 'student_name', 'value', 'comment', 'created_by', 'created_at']
+        read_only_fields = ['created_by', 'created_at']
